@@ -23,7 +23,7 @@ func main() {
 	if token == "" {
 		fmt.Println("Error 404 Token not found!")
 		fmt.Println("Your start command should look like:")
-		fmt.Println("quark -t <API Token>")
+		fmt.Println("Quark -t <API Token>")
 		return
 	}
 
