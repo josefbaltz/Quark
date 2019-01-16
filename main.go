@@ -65,7 +65,7 @@ func messageRecieved(session *discordgo.Session, event *discordgo.MessageCreate)
 		return
 	}
 
-	if strings.HasPrefix(event.Content, "q.ping") {
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.ping") {
 		session.ChannelMessageSend(event.ChannelID, "Ping!")
 	}
 }
