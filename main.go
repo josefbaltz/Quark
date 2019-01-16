@@ -24,7 +24,7 @@ func main() {
 		fmt.Println("Error 404 Token not found!")
 		fmt.Println("Your start command should look like:")
 		fmt.Println("Quark -t <API Token>")
-		return
+		os.Exit(0)
 	}
 
 	//Build Bot
@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		fmt.Println("--Error--")
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
 	//Register Callback Events
@@ -43,6 +43,7 @@ func main() {
 	if err != nil {
 		fmt.Println("--Error--")
 		fmt.Println(err)
+		os.Exit(2)
 	}
 
 	fmt.Println("Quark is running Subatomic!")
