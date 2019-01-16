@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -56,4 +57,14 @@ func main() {
 
 func botConnected(session *discordgo.Session, event *discordgo.Ready) {
 	session.UpdateStatus(0, "at the subatomic level")
+}
+
+func messageRecieved(session *discordgo.Session, event *discordgo.MessageCreate) {
+	if event.Author.Bot {
+		return
+	}
+
+	if strings.HasPrefix(event.Content, "q.ping") {
+		session.ChannelMessageSend(event.ChannelID, "Ping!")
+	}
 }
