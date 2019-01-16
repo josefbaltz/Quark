@@ -38,6 +38,7 @@ func main() {
 
 	//Register Callback Events
 	quark.AddHandler(botConnected)
+	quark.AddHandler(messageRecieved)
 
 	//Open a Connection to Discord
 	err = quark.Open()
