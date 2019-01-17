@@ -58,6 +58,7 @@ func main() {
 
 	//Register Callback Events
 	quark.AddHandler(botConnected)
+	quark.AddHandler(messageRecieved)
 
 	//Open a Connection to Discord
 	err = quark.Open()
@@ -110,7 +111,7 @@ func messageRecieved(session *discordgo.Session, event *discordgo.MessageCreate)
 		return
 	}
 
-	if strings.HasPrefix(event.Content, "q.ping") {
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.ping") {
 		session.ChannelMessageSend(event.ChannelID, "Ping!")
 	}
 }
