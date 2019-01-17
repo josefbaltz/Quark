@@ -15,7 +15,6 @@ import (
 
 func init() {
 	flag.StringVar(&token, "t", "", "Discord API Token")
-	flag.StringVar(&projectID, "g", "", "Google Cloud Project ID")
 	flag.Parse()
 }
 
@@ -32,10 +31,10 @@ type Task struct {
 
 func main() {
 
-	if token == "" || projectID == "" {
+	if token == "" {
 		fmt.Println("--Error--")
 		fmt.Println("Your start command should look like:")
-		fmt.Println("Quark -t <Discord API Token> -g <GCP ProjectID>")
+		fmt.Println("Quark -t <Discord API Token>")
 		os.Exit(0)
 	}
 
@@ -69,7 +68,7 @@ func main() {
 
 func populateUserGCP(ID string, session *discordgo.Session, event *discordgo.MessageCreate) {
 	ctx := context.Background()
-	gcp, err := datastore.NewClient(ctx, projectID)
+	gcp, err := datastore.NewClient(ctx, "quarkbot")
 	if err != nil {
 		fmt.Println("--Error--")
 		fmt.Println("Failed to create GCP client")
