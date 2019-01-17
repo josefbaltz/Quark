@@ -90,7 +90,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 }
 
 func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
-	if event.Author.Bot && event.Author.ID != "176108182056206336" {
+	if event.Author.Bot {
 		return
 	}
 
