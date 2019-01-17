@@ -13,26 +13,22 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-//Init Function
 func init() {
 	flag.StringVar(&token, "t", "", "Discord API Token")
 	flag.Parse()
 }
 
-//Project Variables
 var token string
 var buffer = make([][]byte, 0)
 
-//User has a credits, level, attack, and defense integer
+//User - Users have credits, attack, and defense integers
 type User struct {
 	Credits int
-	Level   int
 	Attack  int
 	Defense int
 }
 
 func main() {
-
 	if token == "" {
 		fmt.Println("--Error--")
 		fmt.Println("Your start command should look like:")
@@ -61,6 +57,7 @@ func main() {
 		os.Exit(2)
 	}
 
+	//Close if close command recieved from os
 	fmt.Println("Quark is running Subatomic!")
 	fmt.Println("Running until stop command ...")
 	sc := make(chan os.Signal, 1)
@@ -70,7 +67,7 @@ func main() {
 }
 
 func botConnected(session *discordgo.Session, event *discordgo.Ready) {
-	session.UpdateStatus(0, "at the subatomic level")
+	session.UpdateStatus(0, "Type q.help")
 }
 
 func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
