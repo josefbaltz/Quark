@@ -47,15 +47,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
-	gcp, err := datastore.NewClient(ctx, projectID)
-	if err != nil {
-		fmt.Println("--Error--")
-		fmt.Println("Failed to create GCP client")
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
 	//Register Callback Events
 	quark.AddHandler(botConnected)
 	quark.AddHandler(messageRecieved)
@@ -83,6 +74,8 @@ func populateUserGCP(ID string, session *discordgo.Session, event *discordgo.Mes
 		fmt.Println("--Error--")
 		fmt.Println("Failed to create GCP client")
 		fmt.Println(err)
+		session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
+		return
 	}
 
 	taskKey := datastore.NameKey("User", ID, nil)
@@ -98,7 +91,10 @@ func populateUserGCP(ID string, session *discordgo.Session, event *discordgo.Mes
 		fmt.Println("--Warning--")
 		fmt.Println("Couldn't Add user to GCP Datatstore")
 		fmt.Println(err)
-
+		session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
+		return
+	} else {
+		session.ChannelMessageSend(event.ChannelID, "Success! Check GCP Console!")
 	}
 }
 
@@ -113,5 +109,10 @@ func messageRecieved(session *discordgo.Session, event *discordgo.MessageCreate)
 
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.ping") {
 		session.ChannelMessageSend(event.ChannelID, "Ping!")
+	}
+
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.gcpPopulate") {
+		session.ChannelMessageSend(event.ChannelID, "Populating ...")
+		populateUserGCP(event.Author.ID, session, event)
 	}
 }
