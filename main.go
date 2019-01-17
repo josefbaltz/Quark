@@ -66,37 +66,6 @@ func main() {
 	quark.Close()
 }
 
-func populateUserGCP(ID string, session *discordgo.Session, event *discordgo.MessageCreate) {
-	ctx := context.Background()
-	gcp, err := datastore.NewClient(ctx, "quarkbot")
-	if err != nil {
-		fmt.Println("--Error--")
-		fmt.Println("Failed to create GCP client")
-		fmt.Println(err)
-		session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
-		return
-	}
-
-	taskKey := datastore.NameKey("User", ID, nil)
-
-	task := Task{
-		Attack:  0,
-		Defense: 0,
-		Credits: 10,
-		Level:   0,
-	}
-
-	if _, err := gcp.Put(ctx, taskKey, &task); err != nil {
-		fmt.Println("--Warning--")
-		fmt.Println("Couldn't Add user to GCP Datatstore")
-		fmt.Println(err)
-		session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
-		return
-	} else {
-		session.ChannelMessageSend(event.ChannelID, "Success! Check GCP Console!")
-	}
-}
-
 func botConnected(session *discordgo.Session, event *discordgo.Ready) {
 	session.UpdateStatus(0, "at the subatomic level")
 }
@@ -110,8 +79,35 @@ func messageRecieved(session *discordgo.Session, event *discordgo.MessageCreate)
 		session.ChannelMessageSend(event.ChannelID, "Ping!")
 	}
 
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.gcpPopulate") {
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.gcppopulate") {
 		session.ChannelMessageSend(event.ChannelID, "Populating ...")
-		populateUserGCP(event.Author.ID, session, event)
+		ctx := context.Background()
+		gcp, err := datastore.NewClient(ctx, "quarkbot")
+		if err != nil {
+			fmt.Println("--Error--")
+			fmt.Println("Failed to create GCP client")
+			fmt.Println(err)
+			session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
+			return
+		}
+
+		taskKey := datastore.NameKey("User", event.Author.ID, nil)
+
+		task := Task{
+			Attack:  0,
+			Defense: 0,
+			Credits: 100,
+			Level:   0,
+		}
+
+		if _, err := gcp.Put(ctx, taskKey, &task); err != nil {
+			fmt.Println("--Warning--")
+			fmt.Println("Couldn't Add user to GCP Datatstore")
+			fmt.Println(err)
+			session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
+			return
+		} else {
+			session.ChannelMessageSend(event.ChannelID, "Success! Check GCP Console!")
+		}
 	}
 }
