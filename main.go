@@ -97,7 +97,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	var failureMessage = "Failed! Message OrangeFlare#1337"
 
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.join") {
-		session.ChannelMessageSend(event.ChannelID, "Registering...")
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		ctx := context.Background()
 		gcp, err := datastore.NewClient(ctx, "quarkbot")
 		if err != nil {
@@ -113,7 +113,6 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			Attack:  0,
 			Defense: 0,
 			Credits: 100,
-			Level:   0,
 		}
 
 		if err := gcp.Get(ctx, userKey, &user); err != nil {
