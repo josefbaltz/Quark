@@ -13,16 +13,18 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+//Init Function
 func init() {
 	flag.StringVar(&token, "t", "", "Discord API Token")
 	flag.Parse()
 }
 
-var projectID string
+//Project Variables
 var token string
 var buffer = make([][]byte, 0)
 
-type Task struct {
+//User has a credits, level, attack, and defense integer
+type User struct {
 	Credits int
 	Level   int
 	Attack  int
@@ -48,7 +50,7 @@ func main() {
 
 	//Register Callback Events
 	quark.AddHandler(botConnected)
-	quark.AddHandler(messageRecieved)
+	quark.AddHandler(basicCommands)
 
 	//Open a Connection to Discord
 	err = quark.Open()
@@ -70,44 +72,61 @@ func botConnected(session *discordgo.Session, event *discordgo.Ready) {
 	session.UpdateStatus(0, "at the subatomic level")
 }
 
-func messageRecieved(session *discordgo.Session, event *discordgo.MessageCreate) {
+func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if event.Author.Bot {
 		return
 	}
 
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.ping") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		session.ChannelMessageSend(event.ChannelID, "Ping!")
 	}
 
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.gcppopulate") {
-		session.ChannelMessageSend(event.ChannelID, "Populating ...")
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.help") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		session.ChannelMessageSend(event.ChannelID, "wip")
+	}
+}
+
+func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
+	if event.Author.Bot && event.Author.ID != "176108182056206336" {
+		return
+	}
+
+	var failureMessage = "Failed! Message OrangeFlare#1337"
+
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.join") {
+		session.ChannelMessageSend(event.ChannelID, "Registering...")
 		ctx := context.Background()
 		gcp, err := datastore.NewClient(ctx, "quarkbot")
 		if err != nil {
 			fmt.Println("--Error--")
 			fmt.Println("Failed to create GCP client")
 			fmt.Println(err)
-			session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
+			session.ChannelMessageSend(event.ChannelID, failureMessage)
 			return
 		}
 
-		taskKey := datastore.NameKey("User", event.Author.ID, nil)
-
-		task := Task{
+		userKey := datastore.NameKey("User", event.Author.ID, nil)
+		user := User{
 			Attack:  0,
 			Defense: 0,
 			Credits: 100,
 			Level:   0,
 		}
 
-		if _, err := gcp.Put(ctx, taskKey, &task); err != nil {
-			fmt.Println("--Warning--")
-			fmt.Println("Couldn't Add user to GCP Datatstore")
-			fmt.Println(err)
-			session.ChannelMessageSend(event.ChannelID, "Failed, Check Console ...")
-			return
+		if err := gcp.Get(ctx, userKey, &user); err != nil {
+			if _, err := gcp.Put(ctx, userKey, &user); err != nil {
+				fmt.Println("--Warning--")
+				fmt.Println("Failed to add user to GCP Datatstore")
+				fmt.Println(err)
+				session.ChannelMessageSend(event.ChannelID, failureMessage)
+				return
+			}
+			session.ChannelMessageSend(event.ChannelID, "Registered!")
 		} else {
-			session.ChannelMessageSend(event.ChannelID, "Success! Check GCP Console!")
+			session.ChannelMessageSend(event.ChannelID, "You are already registered!")
+			return
 		}
 	}
 }
