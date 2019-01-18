@@ -162,7 +162,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	/*
-		if strings.HasPrefix(strings.ToLower(event.Content), "q.game.buy.attack") {
+		if strings.HasPrefix(strings.ToLower(event.Content), "q.game.upgrade.attack") {
 			session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 			ctx := context.Background()
 			gcp, err := datastore.NewClient(ctx, "quarkbot")
