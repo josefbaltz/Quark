@@ -198,14 +198,15 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			return
 		}
 
+		session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+string(user.Attack)
+		session.ChannelMessageSend(event.ChannelID, "You now have "+string(user.Credits+" credits left!")
+
 		if _, err := gcp.Put(ctx, userKey, &user); err != nil {
 			fmt.Println("--Error--")
 			fmt.Println("Failed to create GCP client")
 			fmt.Println(err)
 			session.ChannelMessageSend(event.ChannelID, failureMessage)
 		}
-		session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+string(user.Attack))
-		session.ChannelMessageSend(event.ChannelID, "You now have "+string(user.Credits)+" credits left!")
 		return
 	}
 }
