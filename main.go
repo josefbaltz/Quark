@@ -107,7 +107,12 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.help") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-		session.ChannelMessageSend(event.ChannelID, "wip")
+		helpEmbed := &discordgo.MessageEmbed{
+			Color: 0xffff00, // yellow
+			Title: "Help",
+			Description: "Welcome to Quark!",
+		}
+		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
 		return
 	}
 }
