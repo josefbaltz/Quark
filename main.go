@@ -194,6 +194,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			user.Credits = user.Credits - 10
 			user.Attack++
 		} else {
+			session.ChannelMessageSend(event.ChannelID, "You don't have enough credits!")
 			return
 		}
 
@@ -203,6 +204,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			fmt.Println(err)
 			session.ChannelMessageSend(event.ChannelID, failureMessage)
 		}
+		session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+string(user.Attack))
+		session.ChannelMessageSend(event.ChannelID, "You now have "+string(user.Credits)+" credits left!")
 		return
 	}
 }
