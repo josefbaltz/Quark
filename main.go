@@ -25,8 +25,8 @@ var buffer = make([][]byte, 0)
 
 //UserStructure is a structure of the GCP Datastore (NoSQL Schemaless Database) Users have credits, attack, and defense integers
 type UserStructure struct {
-	Credits int
 	Attack  int
+	Credits int
 	Defense int
 }
 
@@ -108,8 +108,8 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.help") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		helpEmbed := &discordgo.MessageEmbed{
-			Color: 0xffff00, // yellow
-			Title: "Help",
+			Color:       0xffff00, // yellow
+			Title:       "Help",
 			Description: "Welcome to Quark!",
 		}
 		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
