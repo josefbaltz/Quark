@@ -166,30 +166,43 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		return
 	}
 
-	/*
-		if strings.HasPrefix(strings.ToLower(event.Content), "q.game.upgrade.attack") {
-			session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-			ctx := context.Background()
-			gcp, err := datastore.NewClient(ctx, "quarkbot")
-			if err != nil {
-				fmt.Println("--Error--")
-				fmt.Println("Failed to create GCP client")
-				fmt.Println(err)
-				session.ChannelMessageSend(event.ChannelID, failureMessage)
-				return
-			}
-
-			userKey := datastore.NameKey("User", event.Author.ID, nil)
-			user := UserStructure{}
-
-			if err := gcp.Get(ctx, userKey, &user); err != nil {
-				fmt.Println("--Warning--")
-				fmt.Println("Failed to find user from GCP Datastore")
-				fmt.Println(err)
-				session.ChannelMessageSend(event.ChannelID, "You are not registered!")
-				session.ChannelMessageSend(event.ChannelID, "Please run ``q.game.join``")
-				return
-			}
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.upgrade.attack") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		ctx := context.Background()
+		gcp, err := datastore.NewClient(ctx, "quarkbot")
+		if err != nil {
+			fmt.Println("--Error--")
+			fmt.Println("Failed to create GCP client")
+			fmt.Println(err)
+			session.ChannelMessageSend(event.ChannelID, failureMessage)
+			return
 		}
-	*/
+
+		userKey := datastore.NameKey("User", event.Author.ID, nil)
+		user := UserStructure{}
+
+		if err := gcp.Get(ctx, userKey, &user); err != nil {
+			fmt.Println("--Warning--")
+			fmt.Println("Failed to find user from GCP Datastore")
+			fmt.Println(err)
+			session.ChannelMessageSend(event.ChannelID, "You are not registered!")
+			session.ChannelMessageSend(event.ChannelID, "Please run ``q.game.join``")
+			return
+		}
+
+		if user.Credits >= 10 {
+			user.Credits = user.Credits - 10
+			user.Attack++
+		} else {
+			return
+		}
+
+		if _, err := gcp.Put(ctx, userKey, &user); err != nil {
+			fmt.Println("--Error--")
+			fmt.Println("Failed to create GCP client")
+			fmt.Println(err)
+			session.ChannelMessageSend(event.ChannelID, failureMessage)
+		}
+		return
+	}
 }
