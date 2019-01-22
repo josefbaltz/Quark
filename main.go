@@ -181,7 +181,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		userKey := datastore.NameKey("User", event.Author.ID, nil)
 		user := UserStructure{}
 
-		if err := gcp.Get(ctx, userKey, &user); err != nil {
+		if err := gcp.Get(ctx, userKey, user); err != nil {
 			fmt.Println("--Warning--")
 			fmt.Println("Failed to find user from GCP Datastore")
 			fmt.Println(err)
@@ -198,10 +198,10 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			return
 		}
 
-		session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+string(user.Attack)
-		session.ChannelMessageSend(event.ChannelID, "You now have "+string(user.Credits+" credits left!")
+		session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+string(user.Attack))
+		session.ChannelMessageSend(event.ChannelID, "You now have "+string(user.Credits)+" credits left!")
 
-		if _, err := gcp.Put(ctx, userKey, &user); err != nil {
+		if _, err := gcp.Put(ctx, userKey, user); err != nil {
 			fmt.Println("--Error--")
 			fmt.Println("Failed to create GCP client")
 			fmt.Println(err)
