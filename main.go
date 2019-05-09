@@ -112,6 +112,74 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			Color:       0xffff00, // yellow
 			Title:       "Help",
 			Description: "Welcome to Quark!",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:	"q.help.basic",
+					Value:	"Display help with basic commands",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:	"q.help.game",
+					Value:	"Display help with game commands",
+					Inline: false,
+				},
+			},
+		}
+		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
+		return
+	}
+
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.help.basic") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		helpEmbed := &discordgo.MessageEmbed{
+			Color:       0xffff00, // yellow
+			Title:       "Help",
+			Description: "Basic Command Help",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:	"q.help",
+					Value:	"Shows the help index",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:	"q.ping",
+					Value:	"Replied with Ping!"
+					Inline: false,
+				},
+			},
+		}
+		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
+		return
+	}
+
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.help.game") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		helpEmbed := &discordgo.MessageEmbed{
+			Color:       0xffff00, // yellow
+			Title:       "Help",
+			Description: "Game Command Help",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:	"q.game.join",
+					Value:	"Joins the game, you should only need to run this once",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:	"q.game.upgrade.attack",
+					Value:	"Upgrade your attack level for 10 credits",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:	"q.game.upgrade.defense",
+					Value:	"Upgrade your defense level for 10 credits",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:	"q.game.stats",
+					Value:	"View your player stats",
+					Inline: false,
+				},
+			},
 		}
 		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
 		return
