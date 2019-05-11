@@ -128,30 +128,6 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		return
 	}
 
-	//q.help
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.help") {
-		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-		helpEmbed := &discordgo.MessageEmbed{
-			Color:       0xffff00, // yellow
-			Title:       "Help",
-			Description: "Welcome to Quark!",
-			Fields: []*discordgo.MessageEmbedField{
-				&discordgo.MessageEmbedField{
-					Name:   "q.help.basic",
-					Value:  "Display help with basic commands",
-					Inline: false,
-				},
-				&discordgo.MessageEmbedField{
-					Name:   "q.help.game",
-					Value:  "Display help with game commands",
-					Inline: false,
-				},
-			},
-		}
-		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
-		return
-	}
-
 	//q.help.basic
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.help.basic") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
@@ -212,6 +188,30 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 				&discordgo.MessageEmbedField{
 					Name:   "q.game.fight",
 					Value:  "Fight a random enemy",
+					Inline: false,
+				},
+			},
+		}
+		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
+		return
+	}
+
+	//q.help
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.help") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		helpEmbed := &discordgo.MessageEmbed{
+			Color:       0xffff00, // yellow
+			Title:       "Help",
+			Description: "Welcome to Quark!",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:   "q.help.basic",
+					Value:  "Display help with basic commands",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.help.game",
+					Value:  "Display help with game commands",
 					Inline: false,
 				},
 			},
