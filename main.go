@@ -31,6 +31,13 @@ type UserStructure struct {
 	Defense int
 }
 
+//MonsterStructure is a structure of the locally generated monsters Monsters have attack, defense, and reward
+type MonsterStructure struct {
+	Attack  int
+	Defense int
+	Reward  int
+}
+
 //main handles the creation of the Discord client
 func main() {
 	//Makes sure Token is provided to the program so we don't crash and burn
@@ -100,18 +107,114 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		return
 	}
 
+	//q.ping
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.ping") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		session.ChannelMessageSend(event.ChannelID, "Ping!")
 		return
 	}
 
+	//q.invite
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.invite") {
+		privateChannel, err := session.UserChannelCreate(event.Author.ID)
+		if err != nil {
+			session.ChannelMessageSend(event.ChannelID, "Oh no, something went wrong!")
+			fmt.Println(err)
+			return
+		}
+		session.MessageReactionAdd(event.ChannelID, event.Message.ID, "494964052930592768")
+		session.ChannelMessageSend(privateChannel.ID, "A hot invite link, fresh from the ovens!")
+		session.ChannelMessageSend(privateChannel.ID, "https://discordapp.com/oauth2/authorize?client_id=535127851653922816&permissions=3533888&scope=bot")
+		return
+	}
+
+	//q.help
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.help") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		helpEmbed := &discordgo.MessageEmbed{
 			Color:       0xffff00, // yellow
 			Title:       "Help",
 			Description: "Welcome to Quark!",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:   "q.help.basic",
+					Value:  "Display help with basic commands",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.help.game",
+					Value:  "Display help with game commands",
+					Inline: false,
+				},
+			},
+		}
+		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
+		return
+	}
+
+	//q.help.basic
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.help.basic") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		helpEmbed := &discordgo.MessageEmbed{
+			Color:       0xffff00, // yellow
+			Title:       "Help",
+			Description: "Basic Command Help",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:   "q.help",
+					Value:  "Shows the help index",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.ping",
+					Value:  "Replied with Ping!",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.invite",
+					Value:  "Sends you an invite link",
+					Inline: false,
+				},
+			},
+		}
+		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
+		return
+	}
+
+	//q.help.game
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.help.game") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		helpEmbed := &discordgo.MessageEmbed{
+			Color:       0xffff00, // yellow
+			Title:       "Help",
+			Description: "Game Command Help",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:   "q.game.join",
+					Value:  "Joins the game, you should only need to run this once",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.game.upgrade.attack",
+					Value:  "Upgrade your attack level for 10 credits",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.game.upgrade.defense",
+					Value:  "Upgrade your defense level for 10 credits",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.game.stats",
+					Value:  "View your player stats",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "q.game.fight",
+					Value:  "Fight a random enemy",
+					Inline: false,
+				},
+			},
 		}
 		session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
 		return
@@ -167,6 +270,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		return
 	}
 
+	//q.game.upgrade.attack
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.upgrade.attack") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		ctx := context.Background()
@@ -211,6 +315,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		return
 	}
 
+	//q.game.upgrade.defense
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.upgrade.defense") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		ctx := context.Background()
@@ -255,6 +360,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		return
 	}
 
+	//q.game.stats
 	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.stats") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		ctx := context.Background()
