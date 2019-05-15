@@ -122,7 +122,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			fmt.Println(err)
 			return
 		}
-		session.MessageReactionAdd(event.ChannelID, event.Message.ID, "a:agooglethumbsup:494964052930592768")
+		session.MessageReactionAdd(event.ChannelID, event.Message.ID, "👍")
 		session.ChannelMessageSend(privateChannel.ID, "A hot invite link, fresh from the ovens!")
 		session.ChannelMessageSend(privateChannel.ID, "https://discordapp.com/oauth2/authorize?client_id=535127851653922816&permissions=3533888&scope=bot")
 		return
