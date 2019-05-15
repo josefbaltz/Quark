@@ -4,11 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/bwmarrin/discordgo"
@@ -252,8 +254,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		//If it can not find one it creates one with the basic stats and then tells the user that they are now registered
 		if err := gcp.Get(ctx, userKey, nil); err != nil {
 			user := UserStructure{
-				Attack:  0,
-				Defense: 0,
+				Attack:  4,
+				Defense: 4,
 				Credits: 100,
 			}
 			if _, err := gcp.Put(ctx, userKey, &user); err != nil {
@@ -415,4 +417,69 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		session.ChannelMessageSendEmbed(event.Message.ChannelID, infoEmbed)
 		return
 	}
+
+	//q.game.fight
+	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.fight") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		ctx := context.Background()
+		gcp, err := datastore.NewClient(ctx, "quarkbot")
+		if err != nil {
+			fmt.Println("--Error--")
+			fmt.Println("Failed to create GCP client")
+			fmt.Println(err)
+			session.ChannelMessageSend(event.ChannelID, failureMessage)
+			return
+		}
+
+		userKey := datastore.NameKey("User", event.Author.ID, nil)
+		user := UserStructure{}
+		monster := MonsterStructure{}
+
+		if err := gcp.Get(ctx, userKey, &user); err != nil {
+			fmt.Println("--Warning--")
+			fmt.Println("Failed to find user from GCP Datastore")
+			fmt.Println(err)
+			session.ChannelMessageSend(event.ChannelID, "You are not registered!")
+			session.ChannelMessageSend(event.ChannelID, "Please run ``q.game.join``")
+			return
+		}
+
+		rand.Seed(time.Now().UnixNano())
+		monster.Attack = user.Attack * int(0.95+rand.Float64()*(1.05-0.95))
+		rand.Seed(time.Now().UnixNano())
+		monster.Defense = user.Defense * int(0.95+rand.Float64()*(1.05-0.95))
+		rand.Seed(time.Now().UnixNano())
+		monster.Reward = rand.Intn(12-8) + 8
+		fightMonster(user, monster, event, session)
+	}
+}
+
+func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo.MessageCreate, session *discordgo.Session) {
+	//HP is based off of Defense
+	session.ChannelMessageSend(event.ChannelID, event.Author.Username+" vs Random Monster!")
+
+	infoEmbed := &discordgo.MessageEmbed{
+		Color: 0xff0000, // red
+		Title: "Random Monster's Statistics",
+		Fields: []*discordgo.MessageEmbedField{
+			&discordgo.MessageEmbedField{
+				Name:   "Attack",
+				Value:  strconv.Itoa(monster.Attack),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   "Defense",
+				Value:  strconv.Itoa(monster.Defense),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   "Level",
+				Value:  strconv.Itoa(user.Attack + user.Defense),
+				Inline: true,
+			},
+		},
+	}
+
+	session.ChannelMessageSendEmbed(event.ChannelID, infoEmbed)
+	return
 }
