@@ -14,17 +14,24 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"github.com/bwmarrin/discordgo"
+	"google.golang.org/api/option"
 )
 
 //init contains all code ran when the program starts, this includes handling of arguments passed through at start (ex: -t {Discord API Token})
 func init() {
 	flag.StringVar(&token, "t", "", "Discord API Token")
+	flag.StringVar(&gcpcred, "k", "", "GCP JSON Credentials")
 	flag.Parse()
 }
 
 //Required Variables
 var token string
+var gcpcred string
+var cmdprefix string
 var buffer = make([][]byte, 0)
+var gcp *datastore.Client
+var ctx context.Context
+var gcpErr error
 
 //UserStructure is a structure of the GCP Datastore (NoSQL Schemaless Database) Users have credits, attack, and defense integers
 type UserStructure struct {
@@ -48,6 +55,38 @@ func main() {
 		fmt.Println("Your start command should look like:")
 		fmt.Println("Quark -t <Discord API Token>")
 		os.Exit(0)
+	}
+
+	//Build GCP Client
+	if gcpcred == "" {
+		ctx = context.Background()
+		gcpClient, gcpErr := datastore.NewClient(ctx, "quarkbot")
+		if gcpErr != nil {
+			fmt.Println("--Error--")
+			fmt.Println("Failed to create GCP client")
+			fmt.Println(gcpErr)
+			os.Exit(0)
+		} else {
+			gcp = gcpClient
+			cmdprefix = "q"
+		}
+	} else {
+		fmt.Println("====WARNING====")
+		fmt.Println("YOU ARE RUNNING QUARK IN A DEV ENVIRONMENT")
+		fmt.Println("QUARK WAS NOT MEANT TO BE RAN IN THIS WAY")
+		fmt.Println("ONLY RUN QUARK IN DEV MODE WHEN IN A CONTROLLED ENVIRONMENT")
+		fmt.Println("====WARNING====")
+		ctx = context.Background()
+		gcpClient, gcpErr := datastore.NewClient(ctx, "quarkbot", option.WithCredentialsFile(gcpcred))
+		if gcpErr != nil {
+			fmt.Println("--Error--")
+			fmt.Println("Failed to create GCP client")
+			fmt.Println(gcpErr)
+			os.Exit(0)
+		} else {
+			gcp = gcpClient
+			cmdprefix = "qdev"
+		}
 	}
 
 	//Build Discord Bot Client
@@ -83,7 +122,7 @@ func main() {
 //botConnected is a collection of code that is ran when the bot connects to the Discord API
 func botConnected(session *discordgo.Session, event *discordgo.Ready) {
 	//Updates Bot User Status
-	session.UpdateStatus(0, "Type q.help")
+	session.UpdateStatus(0, "Type "+cmdprefix+".help")
 }
 
 /*
@@ -110,14 +149,14 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.ping
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.ping") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".ping") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		session.ChannelMessageSend(event.ChannelID, "Ping!")
 		return
 	}
 
 	//q.invite
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.invite") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".invite") {
 		privateChannel, err := session.UserChannelCreate(event.Author.ID)
 		if err != nil {
 			session.ChannelMessageSend(event.ChannelID, "Oh no, something went wrong!")
@@ -131,25 +170,25 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.help.basic
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.help.basic") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".help.basic") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		helpEmbed := &discordgo.MessageEmbed{
-			Color:       0xffff00, // yellow
+			Color:       0xfaa61a, // quarkyellow
 			Title:       "Help",
 			Description: "Basic Command Help",
 			Fields: []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
-					Name:   "q.help",
+					Name:   cmdprefix + ".help",
 					Value:  "Shows the help index",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
-					Name:   "q.ping",
+					Name:   cmdprefix + ".ping",
 					Value:  "Replied with Ping!",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
-					Name:   "q.invite",
+					Name:   cmdprefix + ".invite",
 					Value:  "Sends you an invite link",
 					Inline: false,
 				},
@@ -160,35 +199,35 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.help.game
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.help.game") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".help.game") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		helpEmbed := &discordgo.MessageEmbed{
-			Color:       0xffff00, // yellow
+			Color:       0xfaa61a, // quarkyellow
 			Title:       "Help",
 			Description: "Game Command Help",
 			Fields: []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
-					Name:   "q.game.join",
+					Name:   cmdprefix + ".game.join",
 					Value:  "Joins the game, you should only need to run this once",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
-					Name:   "q.game.upgrade.attack",
+					Name:   cmdprefix + ".game.upgrade.attack",
 					Value:  "Upgrade your attack level for 10 credits",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
-					Name:   "q.game.upgrade.defense",
+					Name:   cmdprefix + ".game.upgrade.defense",
 					Value:  "Upgrade your defense level for 10 credits",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
-					Name:   "q.game.stats",
+					Name:   cmdprefix + ".game.stats",
 					Value:  "View your player stats",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
-					Name:   "q.game.fight",
+					Name:   cmdprefix + ".game.fight",
 					Value:  "Fight a random enemy",
 					Inline: false,
 				},
@@ -199,20 +238,20 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.help
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.help") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".help") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		helpEmbed := &discordgo.MessageEmbed{
-			Color:       0xffff00, // yellow
+			Color:       0xfaa61a, // quarkyellow
 			Title:       "Help",
 			Description: "Welcome to Quark!",
 			Fields: []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
-					Name:   "q.help.basic",
+					Name:   cmdprefix + ".help.basic",
 					Value:  "Display help with basic commands",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
-					Name:   "q.help.game",
+					Name:   cmdprefix + ".help.game",
 					Value:  "Display help with game commands",
 					Inline: false,
 				},
@@ -232,19 +271,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	var failureMessage = "Failed! Message OrangeFlare#1337"
 
 	//q.game.join
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.join") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.join") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-
-		//Build GCP Datastore Client with GCP Project ID quarkbot
-		ctx := context.Background()
-		gcp, err := datastore.NewClient(ctx, "quarkbot")
-		if err != nil {
-			fmt.Println("--Error--")
-			fmt.Println("Failed to create GCP client")
-			fmt.Println(err)
-			session.ChannelMessageSend(event.ChannelID, failureMessage)
-			return
-		}
 
 		//Creates a Key for the requests to follow called 'userKey'
 		userKey := datastore.NameKey("User", event.Author.ID, nil)
@@ -273,17 +301,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.game.upgrade.attack
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.upgrade.attack") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.upgrade.attack") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-		ctx := context.Background()
-		gcp, err := datastore.NewClient(ctx, "quarkbot")
-		if err != nil {
-			fmt.Println("--Error--")
-			fmt.Println("Failed to create GCP client")
-			fmt.Println(err)
-			session.ChannelMessageSend(event.ChannelID, failureMessage)
-			return
-		}
 
 		userKey := datastore.NameKey("User", event.Author.ID, nil)
 		user := UserStructure{}
@@ -293,7 +312,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			fmt.Println("Failed to find user from GCP Datastore")
 			fmt.Println(err)
 			session.ChannelMessageSend(event.ChannelID, "You are not registered!")
-			session.ChannelMessageSend(event.ChannelID, "Please run ``q.game.join``")
+			session.ChannelMessageSend(event.ChannelID, "Please run ``"+cmdprefix+".game.join``")
 			return
 		}
 
@@ -318,17 +337,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.game.upgrade.defense
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.upgrade.defense") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.upgrade.defense") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-		ctx := context.Background()
-		gcp, err := datastore.NewClient(ctx, "quarkbot")
-		if err != nil {
-			fmt.Println("--Error--")
-			fmt.Println("Failed to create GCP client")
-			fmt.Println(err)
-			session.ChannelMessageSend(event.ChannelID, failureMessage)
-			return
-		}
 
 		userKey := datastore.NameKey("User", event.Author.ID, nil)
 		user := UserStructure{}
@@ -338,7 +348,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			fmt.Println("Failed to find user from GCP Datastore")
 			fmt.Println(err)
 			session.ChannelMessageSend(event.ChannelID, "You are not registered!")
-			session.ChannelMessageSend(event.ChannelID, "Please run ``q.game.join``")
+			session.ChannelMessageSend(event.ChannelID, "Please run ``"+cmdprefix+".game.join``")
 			return
 		}
 
@@ -363,17 +373,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.game.stats
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.stats") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.stats") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-		ctx := context.Background()
-		gcp, err := datastore.NewClient(ctx, "quarkbot")
-		if err != nil {
-			fmt.Println("--Error--")
-			fmt.Println("Failed to create GCP client")
-			fmt.Println(err)
-			session.ChannelMessageSend(event.ChannelID, failureMessage)
-			return
-		}
 
 		userKey := datastore.NameKey("User", event.Author.ID, nil)
 		user := UserStructure{}
@@ -383,12 +384,12 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			fmt.Println("Failed to find user from GCP Datastore")
 			fmt.Println(err)
 			session.ChannelMessageSend(event.ChannelID, "You are not registered!")
-			session.ChannelMessageSend(event.ChannelID, "Please run ``q.game.join``")
+			session.ChannelMessageSend(event.ChannelID, "Please run ``"+cmdprefix+".game.join``")
 			return
 		}
 
 		infoEmbed := &discordgo.MessageEmbed{
-			Color: 0xffff00, // yellow
+			Color: 0xfaa61a, // quarkyellow
 			Title: event.Author.Username + "'s Statistics",
 			Fields: []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
@@ -419,17 +420,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	}
 
 	//q.game.fight
-	if strings.HasPrefix(strings.ToLower(event.Content), "q.game.fight") {
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.fight") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
-		ctx := context.Background()
-		gcp, err := datastore.NewClient(ctx, "quarkbot")
-		if err != nil {
-			fmt.Println("--Error--")
-			fmt.Println("Failed to create GCP client")
-			fmt.Println(err)
-			session.ChannelMessageSend(event.ChannelID, failureMessage)
-			return
-		}
 
 		userKey := datastore.NameKey("User", event.Author.ID, nil)
 		user := UserStructure{}
@@ -440,16 +432,14 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			fmt.Println("Failed to find user from GCP Datastore")
 			fmt.Println(err)
 			session.ChannelMessageSend(event.ChannelID, "You are not registered!")
-			session.ChannelMessageSend(event.ChannelID, "Please run ``q.game.join``")
+			session.ChannelMessageSend(event.ChannelID, "Please run ``"+cmdprefix+".game.join``")
 			return
 		}
 
 		rand.Seed(time.Now().UnixNano())
-		monster.Attack = user.Attack * int(0.95+rand.Float64()*(1.05-0.95))
-		rand.Seed(time.Now().UnixNano())
-		monster.Defense = user.Defense * int(0.95+rand.Float64()*(1.05-0.95))
-		rand.Seed(time.Now().UnixNano())
-		monster.Reward = rand.Intn(12-8) + 8
+		monster.Attack = int(float64(user.Attack) * (0.7 + rand.Float64() + 0.6))
+		monster.Defense = int(float64(user.Defense) * (0.7 + rand.Float64() + 0.6))
+		monster.Reward = int(float64(rand.Intn(4)+8) * ((float64(monster.Attack) + float64(monster.Defense)) / 4) * (0.05 + rand.Float64()*(0.20)))
 		fightMonster(user, monster, event, session)
 	}
 }
@@ -470,6 +460,30 @@ func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo
 			&discordgo.MessageEmbedField{
 				Name:   "Defense",
 				Value:  strconv.Itoa(monster.Defense),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   "Level",
+				Value:  strconv.Itoa(monster.Attack + monster.Defense),
+				Inline: true,
+			},
+		},
+	}
+
+	session.ChannelMessageSendEmbed(event.ChannelID, infoEmbed)
+
+	infoEmbed = &discordgo.MessageEmbed{
+		Color: 0x00ff00, // green
+		Title: event.Author.Username + "'s Statistics",
+		Fields: []*discordgo.MessageEmbedField{
+			&discordgo.MessageEmbedField{
+				Name:   "Attack",
+				Value:  strconv.Itoa(user.Attack),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   "Defense",
+				Value:  strconv.Itoa(user.Defense),
 				Inline: true,
 			},
 			&discordgo.MessageEmbedField{
