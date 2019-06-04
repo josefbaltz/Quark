@@ -22,3 +22,8 @@ _testmain.go
 *.exe
 *.test
 *.prof
+src
+
+#Dev Start File
+start.bat
+*.bat
