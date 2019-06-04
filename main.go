@@ -31,6 +31,7 @@ var cmdprefix string
 var buffer = make([][]byte, 0)
 var gcp *datastore.Client
 var ctx context.Context
+var devmode bool
 var gcpErr error
 
 //UserStructure is a structure of the GCP Datastore (NoSQL Schemaless Database) Users have credits, attack, and defense integers
@@ -69,6 +70,7 @@ func main() {
 		} else {
 			gcp = gcpClient
 			cmdprefix = "q"
+			devmode = false
 		}
 	} else {
 		fmt.Println("====WARNING====")
@@ -85,7 +87,8 @@ func main() {
 			os.Exit(0)
 		} else {
 			gcp = gcpClient
-			cmdprefix = "qdev"
+			cmdprefix = "qd"
+			devmode = true
 		}
 	}
 
@@ -157,15 +160,62 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 
 	//q.invite
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".invite") {
-		privateChannel, err := session.UserChannelCreate(event.Author.ID)
-		if err != nil {
-			session.ChannelMessageSend(event.ChannelID, "Oh no, something went wrong!")
-			fmt.Println(err)
+		if devmode == true {
+			session.ChannelMessageSend(event.ChannelID, "Invite command disabled while running in Developer Mode!")
+		} else {
+			privateChannel, err := session.UserChannelCreate(event.Author.ID)
+			if err != nil {
+				session.ChannelMessageSend(event.ChannelID, "Oh no, something went wrong!")
+				fmt.Println(err)
+				return
+			}
+			session.MessageReactionAdd(event.ChannelID, event.Message.ID, "👍")
+			session.ChannelMessageSend(privateChannel.ID, "A hot invite link, fresh from the ovens!")
+			session.ChannelMessageSend(privateChannel.ID, "https://discordapp.com/oauth2/authorize?client_id=535127851653922816&permissions=3533888&scope=bot")
 			return
 		}
-		session.MessageReactionAdd(event.ChannelID, event.Message.ID, "👍")
-		session.ChannelMessageSend(privateChannel.ID, "A hot invite link, fresh from the ovens!")
-		session.ChannelMessageSend(privateChannel.ID, "https://discordapp.com/oauth2/authorize?client_id=535127851653922816&permissions=3533888&scope=bot")
+	}
+
+	//q.info
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".info") {
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		var version string
+		if devmode == true {
+			version = "Dev"
+		} else {
+			version = "Official Release"
+		}
+		infoEmbed := &discordgo.MessageEmbed{
+			Color:       0xfaa61a, // quarkyellow
+			Title:       "Info",
+			Description: "Information about Quark",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:   "Owner",
+					Value:  "OrangeFlare#1337",
+					Inline: true,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "Contributors",
+					Value:  "OrangeFlare, NatCreatess",
+					Inline: true,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "Version",
+					Value:  version,
+					Inline: true,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "Third-Party Packages Used",
+					Value:  "cloud.google.com/go/datastore, github.com/bwmarrin/discordgo, google.golang.org/api/option",
+					Inline: false,
+				},
+			},
+			Thumbnail: &discordgo.MessageEmbedThumbnail{
+				URL: "https://cdn.discordapp.com/avatars/535127851653922816/a6b1eb1cdcc29e0bd7e14228b17a28aa.png?size=512",
+			},
+		}
+		session.ChannelMessageSendEmbed(event.ChannelID, infoEmbed)
 		return
 	}
 
@@ -184,12 +234,17 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 				},
 				&discordgo.MessageEmbedField{
 					Name:   cmdprefix + ".ping",
-					Value:  "Replied with Ping!",
+					Value:  "Replies with 'Ping!'",
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
 					Name:   cmdprefix + ".invite",
 					Value:  "Sends you an invite link",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   cmdprefix + ".info",
+					Value:  "Shows basic info about Quark",
 					Inline: false,
 				},
 			},
@@ -437,8 +492,8 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		}
 
 		rand.Seed(time.Now().UnixNano())
-		monster.Attack = int(float64(user.Attack) * (0.7 + rand.Float64() + 0.6))
-		monster.Defense = int(float64(user.Defense) * (0.7 + rand.Float64() + 0.6))
+		monster.Attack = int(float64(user.Attack) * ((0.7 + rand.Float64()) * 0.85))
+		monster.Defense = int(float64(user.Defense) * ((0.7 + rand.Float64()) * 0.85))
 		monster.Reward = int(float64(rand.Intn(4)+8) * ((float64(monster.Attack) + float64(monster.Defense)) / 4) * (0.05 + rand.Float64()*(0.20)))
 		fightMonster(user, monster, event, session)
 	}
@@ -446,9 +501,9 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 
 func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo.MessageCreate, session *discordgo.Session) {
 	//HP is based off of Defense
-	session.ChannelMessageSend(event.ChannelID, event.Author.Username+" vs Random Monster!")
+	rand.Seed(time.Now().UnixNano())
 
-	infoEmbed := &discordgo.MessageEmbed{
+	monsterStats := &discordgo.MessageEmbed{
 		Color: 0xff0000, // red
 		Title: "Random Monster's Statistics",
 		Fields: []*discordgo.MessageEmbedField{
@@ -470,9 +525,7 @@ func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo
 		},
 	}
 
-	session.ChannelMessageSendEmbed(event.ChannelID, infoEmbed)
-
-	infoEmbed = &discordgo.MessageEmbed{
+	playerStats := &discordgo.MessageEmbed{
 		Color: 0x00ff00, // green
 		Title: event.Author.Username + "'s Statistics",
 		Fields: []*discordgo.MessageEmbedField{
@@ -494,6 +547,57 @@ func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo
 		},
 	}
 
-	session.ChannelMessageSendEmbed(event.ChannelID, infoEmbed)
+	session.ChannelMessageSend(event.ChannelID, event.Author.Username+" vs Random Monster!")
+	session.ChannelMessageSendEmbed(event.ChannelID, playerStats)
+	session.ChannelMessageSendEmbed(event.ChannelID, monsterStats)
+
+	for user.Defense > 0 && monster.Defense > 0 {
+		var userDamage = int(float64(user.Attack)*(0.8+rand.Float64()*0.4)) / 4
+		monster.Defense = monster.Defense - userDamage
+		if monster.Defense > 0 {
+			session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has "+strconv.Itoa(monster.Defense)+"hp left!``")
+		} else {
+			session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has been slain!``")
+			addCredits(event, session, event.Author.ID, monster.Reward)
+			session.ChannelMessageSend(event.ChannelID, "Your account has been credited "+strconv.Itoa(monster.Reward)+" Credits!")
+			return
+		}
+		session.ChannelMessageSend(event.ChannelID, "``--------------------``")
+		var monsterDamage = int(float64(monster.Attack)*(0.8+rand.Float64()*0.4)) / 4
+		user.Defense = user.Defense - monsterDamage
+		if user.Defense > 0 {
+			session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has "+strconv.Itoa(user.Defense)+"hp left!``")
+		} else {
+			session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has been slain!``")
+			session.ChannelMessageSend(event.ChannelID, "The monster kept their "+strconv.Itoa(monster.Reward)+" Credits!")
+			return
+		}
+		session.ChannelMessageSend(event.ChannelID, "``--------------------``")
+	}
+}
+
+func addCredits(event *discordgo.MessageCreate, session *discordgo.Session, UserID string, Credits int) {
+	var failureMessage = "Failed! Message OrangeFlare#1337"
+	userKey := datastore.NameKey("User", UserID, nil)
+	user := UserStructure{}
+
+	if err := gcp.Get(ctx, userKey, &user); err != nil {
+		fmt.Println("--Warning--")
+		fmt.Println("Failed to find user from GCP Datastore")
+		fmt.Println(err)
+		session.ChannelMessageSend(event.ChannelID, "The User ``"+UserID+"`` is not registered!")
+		session.ChannelMessageSend(event.ChannelID, "Please have them run ``"+cmdprefix+".game.join``")
+		session.ChannelMessageSend(event.ChannelID, "***__If you believe this to be a mistake, contact OrangeFlare#1337 immediately!__***")
+		return
+	}
+
+	user.Credits = user.Credits + Credits
+
+	if _, err := gcp.Put(ctx, userKey, &user); err != nil {
+		fmt.Println("--Error--")
+		fmt.Println("Failed to create GCP client")
+		fmt.Println(err)
+		session.ChannelMessageSend(event.ChannelID, failureMessage)
+	}
 	return
 }
