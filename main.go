@@ -492,13 +492,34 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		}
 
 		rand.Seed(time.Now().UnixNano())
-		monster.Attack = int(float64(user.Attack) * ((0.7 + rand.Float64()) * 0.85))
-		monster.Defense = int(float64(user.Defense) * ((0.7 + rand.Float64()) * 0.85))
+		monster.Attack = int(float64(user.Attack) * ((0.7 + rand.Float64()) * 0.8))
+		monster.Defense = int(float64(user.Defense) * ((0.7 + rand.Float64()) * 0.8))
 		monster.Reward = int(float64(rand.Intn(4)+8) * ((float64(monster.Attack) + float64(monster.Defense)) / 4) * (0.05 + rand.Float64()*(0.20)))
 		fightMonster(user, monster, event, session)
 	}
+
+	//q.game.admin.addcredits
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.admin.addcredits") {
+		if event.Author.ID != "176108182056206336" { //Only OrangeFlare#1337 can run this command
+			return
+		}
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		args := strings.Split(strings.TrimPrefix(event.Content, cmdprefix+".game.admin.addcredits "), " ")
+		UserID, Credits := args[0], args[1]
+
+		CreditsConv, err := strconv.Atoi(Credits)
+		if err != nil {
+			session.ChannelMessageSend(event.ChannelID, "An error has occured!")
+			return
+		}
+
+		addCredits(event, session, UserID, CreditsConv)
+		session.ChannelMessageSend(event.ChannelID, "The UserID "+UserID+" has been credited "+Credits+" Credits")
+		return
+	}
 }
 
+//fightMonster contains all code for battles against randomly generated monsters
 func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo.MessageCreate, session *discordgo.Session) {
 	//HP is based off of Defense
 	rand.Seed(time.Now().UnixNano())
@@ -551,31 +572,87 @@ func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo
 	session.ChannelMessageSendEmbed(event.ChannelID, playerStats)
 	session.ChannelMessageSendEmbed(event.ChannelID, monsterStats)
 
-	for user.Defense > 0 && monster.Defense > 0 {
-		var userDamage = int(float64(user.Attack)*(0.8+rand.Float64()*0.4)) / 4
-		monster.Defense = monster.Defense - userDamage
-		if monster.Defense > 0 {
-			session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has "+strconv.Itoa(monster.Defense)+"hp left!``")
-		} else {
-			session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has been slain!``")
-			addCredits(event, session, event.Author.ID, monster.Reward)
-			session.ChannelMessageSend(event.ChannelID, "Your account has been credited "+strconv.Itoa(monster.Reward)+" Credits!")
-			return
+	if rand.Intn(1) == 1 {
+		for user.Defense > 0 && monster.Defense > 0 {
+			bulkDeleteSlice := []string{}
+
+			var userDamage = int(float64(user.Attack)*(0.8+rand.Float64()*0.4)) / 4
+			monster.Defense = monster.Defense - userDamage
+			if monster.Defense > 0 {
+				sentMessageContent, err := session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has "+strconv.Itoa(monster.Defense)+"hp left!``")
+				bulkDeleteSlice = append(bulkDeleteSlice, sentMessageContent.ID)
+				if err != nil {
+					return
+				}
+			} else {
+				session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has been slain!``")
+				addCredits(event, session, event.Author.ID, monster.Reward)
+				session.ChannelMessageSend(event.ChannelID, "Your account has been credited "+strconv.Itoa(monster.Reward)+" Credits!")
+				return
+			}
+			time.Sleep(2 * time.Second)
+			session.ChannelMessagesBulkDelete(event.ChannelID, bulkDeleteSlice)
+
+			var monsterDamage = int(float64(monster.Attack)*(0.8+rand.Float64()*0.4)) / 4
+			user.Defense = user.Defense - monsterDamage
+			if user.Defense > 0 {
+				sentMessageContent, err := session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has "+strconv.Itoa(user.Defense)+"hp left!``")
+				bulkDeleteSlice = append(bulkDeleteSlice, sentMessageContent.ID)
+				if err != nil {
+					return
+				}
+			} else {
+				session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has been slain!``")
+				removeCredits(event, session, event.Author.ID, monster.Reward/5)
+				session.ChannelMessageSend(event.ChannelID, "The monster has taken "+strconv.Itoa(monster.Reward/5)+" Credits from you!")
+				return
+			}
+			time.Sleep(2 * time.Second)
+			session.ChannelMessagesBulkDelete(event.ChannelID, bulkDeleteSlice)
 		}
-		session.ChannelMessageSend(event.ChannelID, "``--------------------``")
-		var monsterDamage = int(float64(monster.Attack)*(0.8+rand.Float64()*0.4)) / 4
-		user.Defense = user.Defense - monsterDamage
-		if user.Defense > 0 {
-			session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has "+strconv.Itoa(user.Defense)+"hp left!``")
-		} else {
-			session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has been slain!``")
-			session.ChannelMessageSend(event.ChannelID, "The monster kept their "+strconv.Itoa(monster.Reward)+" Credits!")
-			return
+	} else {
+		for user.Defense > 0 && monster.Defense > 0 {
+			bulkDeleteSlice := []string{}
+
+			var monsterDamage = int(float64(monster.Attack)*(0.8+rand.Float64()*0.4)) / 4
+			user.Defense = user.Defense - monsterDamage
+			if user.Defense > 0 {
+				sentMessageContent, err := session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has "+strconv.Itoa(user.Defense)+"hp left!``")
+				bulkDeleteSlice = append(bulkDeleteSlice, sentMessageContent.ID)
+				if err != nil {
+					return
+				}
+			} else {
+				session.ChannelMessageSend(event.ChannelID, "``The monster dealt "+strconv.Itoa(monsterDamage)+" damage to "+event.Author.Username+"!``\n``"+event.Author.Username+" has been slain!``")
+				removeCredits(event, session, event.Author.ID, monster.Reward/5)
+				session.ChannelMessageSend(event.ChannelID, "The monster has taken "+strconv.Itoa(monster.Reward/5)+" Credits from you!")
+				return
+			}
+			time.Sleep(2 * time.Second)
+			session.ChannelMessagesBulkDelete(event.ChannelID, bulkDeleteSlice)
+
+			var userDamage = int(float64(user.Attack)*(0.8+rand.Float64()*0.4)) / 4
+			monster.Defense = monster.Defense - userDamage
+			if monster.Defense > 0 {
+				sentMessageContent, err := session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has "+strconv.Itoa(monster.Defense)+"hp left!``")
+				bulkDeleteSlice = append(bulkDeleteSlice, sentMessageContent.ID)
+				if err != nil {
+					return
+				}
+			} else {
+				session.ChannelMessageSend(event.ChannelID, "``"+event.Author.Username+" dealt "+strconv.Itoa(userDamage)+" damage to the enemy!``\n``The enemy has been slain!``")
+				addCredits(event, session, event.Author.ID, monster.Reward)
+				session.ChannelMessageSend(event.ChannelID, "Your account has been credited "+strconv.Itoa(monster.Reward)+" Credits!")
+				return
+			}
+			time.Sleep(2 * time.Second)
+			session.ChannelMessagesBulkDelete(event.ChannelID, bulkDeleteSlice)
 		}
-		session.ChannelMessageSend(event.ChannelID, "``--------------------``")
 	}
+
 }
 
+//addCredits contains all code for adding credits to a user
 func addCredits(event *discordgo.MessageCreate, session *discordgo.Session, UserID string, Credits int) {
 	var failureMessage = "Failed! Message OrangeFlare#1337"
 	userKey := datastore.NameKey("User", UserID, nil)
@@ -592,6 +669,37 @@ func addCredits(event *discordgo.MessageCreate, session *discordgo.Session, User
 	}
 
 	user.Credits = user.Credits + Credits
+
+	if _, err := gcp.Put(ctx, userKey, &user); err != nil {
+		fmt.Println("--Error--")
+		fmt.Println("Failed to create GCP client")
+		fmt.Println(err)
+		session.ChannelMessageSend(event.ChannelID, failureMessage)
+	}
+	return
+}
+
+//takeCredits contains all code for removing credits from a user
+func removeCredits(event *discordgo.MessageCreate, session *discordgo.Session, UserID string, Credits int) {
+	var failureMessage = "Failed! Message OrangeFlare#1337"
+	userKey := datastore.NameKey("User", UserID, nil)
+	user := UserStructure{}
+
+	if err := gcp.Get(ctx, userKey, &user); err != nil {
+		fmt.Println("--Warning--")
+		fmt.Println("Failed to find user from GCP Datastore")
+		fmt.Println(err)
+		session.ChannelMessageSend(event.ChannelID, "The User ``"+UserID+"`` is not registered!")
+		session.ChannelMessageSend(event.ChannelID, "Please have them run ``"+cmdprefix+".game.join``")
+		session.ChannelMessageSend(event.ChannelID, "***__If you believe this to be a mistake, contact OrangeFlare#1337 immediately!__***")
+		return
+	}
+
+	if user.Credits < Credits {
+		user.Credits = 0
+	} else {
+		user.Credits = user.Credits - Credits
+	}
 
 	if _, err := gcp.Put(ctx, userKey, &user); err != nil {
 		fmt.Println("--Error--")
