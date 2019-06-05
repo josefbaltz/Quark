@@ -226,7 +226,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 				},
 			},
 			Thumbnail: &discordgo.MessageEmbedThumbnail{
-				URL: "https://cdn.discordapp.com/avatars/535127851653922816/a6b1eb1cdcc29e0bd7e14228b17a28aa.png?size=512",
+				URL: "https://cdn.discordapp.com/app-icons/535127851653922816/ace0bcc0f4a113abc95542eac2cb73be.png?size=512",
 			},
 		}
 		sentMessage, _ := session.ChannelMessageSendEmbed(event.ChannelID, infoEmbed)
@@ -748,7 +748,7 @@ func battleStatsEmbed(event *discordgo.MessageCreate, session *discordgo.Session
 		},
 		Footer: &discordgo.MessageEmbedFooter{
 			Text:    "Quark",
-			IconURL: "https://cdn.discordapp.com/avatars/535127851653922816/a6b1eb1cdcc29e0bd7e14228b17a28aa.png?size=64",
+			IconURL: "https://cdn.discordapp.com/app-icons/535127851653922816/ace0bcc0f4a113abc95542eac2cb73be.png?size=64",
 		},
 	}
 	return battleStats
