@@ -12,6 +12,9 @@ notifications:
   email: false
 before_script:
 - go install github.com/golangci/golangci-lint/cmd/golangci-lint
+- go install cloud.google.com/go/datastore
+- go install github.com/bwmarrin/discordgo
+- go install google.golang.org/api/option
 script:
 - golangci-lint run
 - go test -v -race ./...
