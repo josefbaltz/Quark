@@ -11,10 +11,15 @@ git:
 notifications:
   email: false
 
+branches:
+  only:
+  - master
+
 deploy:
   provider: releases
   api_key:
     secure: T8hlDOKhpvRqjjEz0CEbs+jtPdW7judyS+W5XZ+ZT42Maa6h9t0FNXbACsRKDFWcJPcrVgav5nxkAIVgk4AOQdYM+IxGMQ7b/lcbHPsMhXIf49JFMnEQvy1v9MRT8x/VmWWlU04QachkqfbJRQ8FIXRs3f+w6YrlhJCltriIbH4TTqSdEujgDdpQ+fCxwxD3uDltzPIV7TWWjcvLTAe1zb5kfbNmczc75k5GI0r1znN7SnvwjM7R1wGxMqKp5Z1YpQ8mY6hQnVyNHzr3gu/e4U7ZcaFLVyACnae4Abo3+jx0+/BtEAw1q7eXTEmPJRULU3uRNNWTDulMflLolfgGYHBho3DALQEHqchPe0h5LJ460D74GQOuYLUa/NJrCcwTlzIUeyWGsKeqA8yv5aBzqrqwa1hY2Tp4MrOnTYDQeZcNOfqc2U1wtvOf1vm6zzaGE7n1aCtffgRHtZ23qA6HLP/et1OaN8B3OdGra/0Lz97awHZHSOL2kzPse2nt85neR4OzJAYLbKXt16zOOAnTDK9v/Az2/DEzRApkYSzRrj3xGeueAEAlQ4yFrBT4+72P1G6uBM1x0F4MZQCxUtigzH47hY9YEN3syEg3JlqOZKXtwqdvgGVMMKDtxTnPixtsr3A3YPcN6t27jIhv8AWHPhJnl9k4ODiAg+hQ/A/0uXc=
   file: Quark
+  skip_cleanup: true
   on:
     repo: OrangeFlare/Quark
