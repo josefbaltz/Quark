@@ -20,7 +20,7 @@ script: go build
 before_deploy:
   - git config --local user.name "OrangeFlare"
   - git config --local user.email "josef@baltz.net"
-  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d')-$(git log --format=%h -1)}
+  - export TRAVIS_TAG=${TRAVIS_TAG:Quark-$(date +'%y.%m.%d')}
   - git tag $TRAVIS_TAG
   - ls
 
