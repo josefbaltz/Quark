@@ -15,11 +15,14 @@ branches:
   only:
   - master
 
+script: go build
+
 before_deploy:
   - git config --local user.name "OrangeFlare"
   - git config --local user.email "josef@baltz.net"
-  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d')-$(git log --format=%h -1)}
   - git tag $TRAVIS_TAG
+  - ls
 
 deploy:
   provider: releases
