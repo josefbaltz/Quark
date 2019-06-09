@@ -19,19 +19,20 @@ import (
 
 //init contains all code ran when the program starts, this includes handling of arguments passed through at start (ex: -t {Discord API Token})
 func init() {
-	flag.StringVar(&token, "t", "", "Discord API Token")
-	flag.StringVar(&gcpcred, "k", "", "GCP JSON Credentials")
+	flag.StringVar(&token, "t", "", "Discord API Token (String)")
+	flag.StringVar(&gcpcred, "k", "", "GCP JSON Credentials (String)")
+	flag.BoolVar(&devmode, "d", false, "Whether or not to run Quark in DevMode (Boolean)")
 	flag.Parse()
 }
 
 //Required Variables
 var token string
 var gcpcred string
+var devmode bool
 var cmdprefix string
 var buffer = make([][]byte, 0)
 var gcp *datastore.Client
 var ctx context.Context
-var devmode bool
 var gcpErr error
 
 //UserStructure is a structure of the GCP Datastore (NoSQL Schemaless Database) Users have credits, attack, and defense integers
@@ -69,15 +70,8 @@ func main() {
 			os.Exit(0)
 		} else {
 			gcp = gcpClient
-			cmdprefix = "q"
-			devmode = false
 		}
 	} else {
-		fmt.Println("====WARNING====")
-		fmt.Println("YOU ARE RUNNING QUARK IN A DEV ENVIRONMENT")
-		fmt.Println("QUARK WAS NOT MEANT TO BE RAN IN THIS WAY")
-		fmt.Println("ONLY RUN QUARK IN DEV MODE WHEN IN A CONTROLLED ENVIRONMENT")
-		fmt.Println("====WARNING====")
 		ctx = context.Background()
 		gcpClient, gcpErr := datastore.NewClient(ctx, "quarkbot", option.WithCredentialsFile(gcpcred))
 		if gcpErr != nil {
@@ -87,9 +81,18 @@ func main() {
 			os.Exit(0)
 		} else {
 			gcp = gcpClient
-			cmdprefix = "qd"
-			devmode = true
 		}
+	}
+
+	if devmode == true {
+		fmt.Println("====WARNING====")
+		fmt.Println("YOU ARE RUNNING QUARK IN A DEV ENVIRONMENT")
+		fmt.Println("QUARK WAS NOT MEANT TO BE RAN IN THIS WAY")
+		fmt.Println("ONLY RUN QUARK IN DEV MODE WHEN IN A CONTROLLED ENVIRONMENT")
+		fmt.Println("====WARNING====")
+		cmdprefix = "qd"
+	} else {
+		cmdprefix = "q"
 	}
 
 	//Build Discord Bot Client
@@ -361,9 +364,9 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		//If it can not find one it creates one with the basic stats and then tells the user that they are now registered
 		if err := gcp.Get(ctx, userKey, &user); err != nil {
 			user := UserStructure{
-				Attack:  4,
-				Defense: 4,
-				Credits: 100,
+				Attack:  8,
+				Defense: 8,
+				Credits: 50,
 			}
 			if _, err := gcp.Put(ctx, userKey, &user); err != nil {
 				fmt.Println("--Warning--")
