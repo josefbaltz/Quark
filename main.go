@@ -35,6 +35,8 @@ var gcp *datastore.Client
 var ctx context.Context
 var gcpErr error
 
+var messageSleepTime time.Duration = 12
+
 //UserStructure is a structure of the GCP Datastore (NoSQL Schemaless Database) Users have credits, attack, and defense integers
 type UserStructure struct {
 	Attack  int
@@ -131,9 +133,9 @@ func botConnected(session *discordgo.Session, event *discordgo.Ready) {
 	//*NOTE* Any code below this will *not* run make sure to put anything that needs to be ran once above this for loop
 	for 1 == 1 {
 		session.UpdateStatus(0, "Type "+cmdprefix+".help")
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.UpdateStatus(0, "with "+strconv.Itoa(len(session.State.Guilds))+" servers")
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 	}
 }
 
@@ -164,7 +166,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".ping") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 		sentMessage, _ := session.ChannelMessageSend(event.ChannelID, session.HeartbeatLatency().String())
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -188,7 +190,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			session.ChannelMessageSend(privateChannel.ID, "A hot invite link, fresh from the ovens!\nhttps://discordapp.com/oauth2/authorize?client_id=535127851653922816&permissions=3533888&scope=bot")
 			bulkDeleteSlice = append(bulkDeleteSlice, event.Message.ID)
 		}
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessagesBulkDelete(event.ChannelID, bulkDeleteSlice)
 		return
 	}
@@ -233,7 +235,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			},
 		}
 		sentMessage, _ := session.ChannelMessageSendEmbed(event.ChannelID, infoEmbed)
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -269,7 +271,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			},
 		}
 		sentMessage, _ := session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -310,7 +312,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			},
 		}
 		sentMessage, _ := session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -336,7 +338,7 @@ func basicCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			},
 		}
 		sentMessage, _ := session.ChannelMessageSendEmbed(event.ChannelID, helpEmbed)
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -354,34 +356,18 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.join") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 
-		//Creates a Key for the requests to follow called 'userKey'
-		userKey := datastore.NameKey("User", event.Author.ID, nil)
-		user := UserStructure{}
-		var sentMessage *discordgo.Message
-
-		//Attempt to get an entity from the Datastore with the title of the User's Discord ID
-		//If it finds one it just tells the user they are already registered
-		//If it can not find one it creates one with the basic stats and then tells the user that they are now registered
-		if err := gcp.Get(ctx, userKey, &user); err != nil {
-			user := UserStructure{
-				Attack:  8,
-				Defense: 8,
-				Credits: 50,
-			}
-			if _, err := gcp.Put(ctx, userKey, &user); err != nil {
-				fmt.Println("--Warning--")
-				fmt.Println("Failed to add user to GCP Datatstore")
-				fmt.Println(err)
-				session.ChannelMessageSend(event.ChannelID, failureMessage)
+		if _, err := getUserData(event.Author.ID); err != nil {
+			if err := putUserData(event.Author.ID, 8, 8, 50); err != nil {
+				session.ChannelMessageSend(event.ChannelID, "Failed! Message OrangeFlare#1337")
 				return
 			}
-			sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "Registered!")
-			time.Sleep(6 * time.Second)
+			sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "Registered!")
+			time.Sleep(messageSleepTime * time.Second)
 			session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 			return
 		}
-		sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "You are already registered!")
-		time.Sleep(6 * time.Second)
+		sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "You are already registered!")
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -390,16 +376,10 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.upgrade.attack") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 
-		userKey := datastore.NameKey("User", event.Author.ID, nil)
-		var sentMessage *discordgo.Message
-		user := UserStructure{}
-
-		if err := gcp.Get(ctx, userKey, &user); err != nil {
-			fmt.Println("--Warning--")
-			fmt.Println("Failed to find user from GCP Datastore")
-			fmt.Println(err)
-			sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "You are not registered!\nPlease run ``"+cmdprefix+".game.join``")
-			time.Sleep(6 * time.Second)
+		user, err := getUserData(event.Author.ID)
+		if err != nil {
+			sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "You are not registered!\nPlease run ``"+cmdprefix+".game.join``")
+			time.Sleep(messageSleepTime * time.Second)
 			session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 			return
 		}
@@ -408,21 +388,18 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			user.Credits = user.Credits - 10
 			user.Attack++
 		} else {
-			sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "You don't have enough credits!")
-			time.Sleep(6 * time.Second)
+			sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "You don't have enough credits!")
+			time.Sleep(messageSleepTime * time.Second)
 			session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 			return
 		}
 
-		if _, err := gcp.Put(ctx, userKey, &user); err != nil {
-			fmt.Println("--Error--")
-			fmt.Println("Failed to create GCP client")
-			fmt.Println(err)
+		if err := putUserData(event.Author.ID, user.Attack, user.Defense, user.Credits); err != nil {
 			session.ChannelMessageSend(event.ChannelID, "```"+failureMessage+"```\nPlease Contact OrangeFlare#1337")
 			return
 		}
-		sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+strconv.Itoa(user.Attack)+"\nYou now have "+strconv.Itoa(user.Credits)+" credits left!")
-		time.Sleep(6 * time.Second)
+		sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+strconv.Itoa(user.Attack)+"\nYou now have "+strconv.Itoa(user.Credits)+" credits left!")
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -431,16 +408,12 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.upgrade.defense") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 
-		userKey := datastore.NameKey("User", event.Author.ID, nil)
-		var sentMessage *discordgo.Message
-		user := UserStructure{}
+		var user UserStructure
 
-		if err := gcp.Get(ctx, userKey, &user); err != nil {
-			fmt.Println("--Warning--")
-			fmt.Println("Failed to find user from GCP Datastore")
-			fmt.Println(err)
-			sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "You are not registered!\nPlease run ``"+cmdprefix+".game.join``")
-			time.Sleep(6 * time.Second)
+		user, err := getUserData(event.Author.ID)
+		if err != nil {
+			sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "You are not registered!\nPlease run ``"+cmdprefix+".game.join``")
+			time.Sleep(messageSleepTime * time.Second)
 			session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 			return
 		}
@@ -449,21 +422,18 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			user.Credits = user.Credits - 10
 			user.Defense++
 		} else {
-			sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "You don't have enough credits!")
-			time.Sleep(6 * time.Second)
+			sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "You don't have enough credits!")
+			time.Sleep(messageSleepTime * time.Second)
 			session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 			return
 		}
 
-		if _, err := gcp.Put(ctx, userKey, &user); err != nil {
-			fmt.Println("--Error--")
-			fmt.Println("Failed to create GCP client")
-			fmt.Println(err)
+		if err := putUserData(event.Author.ID, user.Attack, user.Defense, user.Credits); err != nil {
 			session.ChannelMessageSend(event.ChannelID, "```"+failureMessage+"```\nPlease Contact OrangeFlare#1337")
 			return
 		}
-		sentMessage, _ = session.ChannelMessageSend(event.ChannelID, "Success! Your defense is now level "+strconv.Itoa(user.Defense)+"\nYou now have "+strconv.Itoa(user.Credits)+" credits left!")
-		time.Sleep(6 * time.Second)
+		sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+strconv.Itoa(user.Attack)+"\nYou now have "+strconv.Itoa(user.Credits)+" credits left!")
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -472,15 +442,10 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.stats") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 
-		userKey := datastore.NameKey("User", event.Author.ID, nil)
-		user := UserStructure{}
-
-		if err := gcp.Get(ctx, userKey, &user); err != nil {
-			fmt.Println("--Warning--")
-			fmt.Println("Failed to find user from GCP Datastore")
-			fmt.Println(err)
+		user, err := getUserData(event.Author.ID)
+		if err != nil {
 			sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "You are not registered!\nPlease run ``"+cmdprefix+".game.join``")
-			time.Sleep(6 * time.Second)
+			time.Sleep(messageSleepTime * time.Second)
 			session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 			return
 		}
@@ -513,7 +478,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 		}
 
 		sentMessage, _ := session.ChannelMessageSendEmbed(event.Message.ChannelID, infoEmbed)
-		time.Sleep(6 * time.Second)
+		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
 	}
@@ -522,16 +487,12 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.fight") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
 
-		userKey := datastore.NameKey("User", event.Author.ID, nil)
-		user := UserStructure{}
 		monster := MonsterStructure{}
 
-		if err := gcp.Get(ctx, userKey, &user); err != nil {
-			fmt.Println("--Warning--")
-			fmt.Println("Failed to find user from GCP Datastore")
-			fmt.Println(err)
+		user, err := getUserData(event.Author.ID)
+		if err != nil {
 			sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "You are not registered!\nPlease run ``"+cmdprefix+".game.join``")
-			time.Sleep(6 * time.Second)
+			time.Sleep(messageSleepTime * time.Second)
 			session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 			return
 		}
@@ -680,21 +641,15 @@ func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo
 			time.Sleep(2 * time.Second)
 		}
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(messageSleepTime * time.Second)
 	session.ChannelMessagesBulkDelete(event.ChannelID, bulkDeleteSlice)
 	return
 }
 
 //addCredits contains all code for adding credits to a user
 func addCredits(event *discordgo.MessageCreate, session *discordgo.Session, UserID string, Credits int) {
-	var failureMessage = "Failed! Message OrangeFlare#1337"
-	userKey := datastore.NameKey("User", UserID, nil)
-	user := UserStructure{}
-
-	if err := gcp.Get(ctx, userKey, &user); err != nil {
-		fmt.Println("--Warning--")
-		fmt.Println("Failed to find user from GCP Datastore")
-		fmt.Println(err)
+	user, err := getUserData(event.Author.ID)
+	if err != nil {
 		session.ChannelMessageSend(event.ChannelID, "The User ``"+UserID+"`` is not registered!")
 		session.ChannelMessageSend(event.ChannelID, "Please have them run ``"+cmdprefix+".game.join``")
 		session.ChannelMessageSend(event.ChannelID, "***__If you believe this to be a mistake, contact OrangeFlare#1337 immediately!__***")
@@ -703,11 +658,8 @@ func addCredits(event *discordgo.MessageCreate, session *discordgo.Session, User
 
 	user.Credits = user.Credits + Credits
 
-	if _, err := gcp.Put(ctx, userKey, &user); err != nil {
-		fmt.Println("--Error--")
-		fmt.Println("Failed to create GCP client")
-		fmt.Println(err)
-		session.ChannelMessageSend(event.ChannelID, failureMessage)
+	if err := putUserData(event.Author.ID, user.Attack, user.Defense, user.Credits); err != nil {
+		session.ChannelMessageSend(event.ChannelID, "Failed! Message OrangeFlare#1337")
 	}
 	return
 }
@@ -759,14 +711,8 @@ func battleStatsEmbed(event *discordgo.MessageCreate, session *discordgo.Session
 
 //takeCredits contains all code for removing credits from a user
 func removeCredits(event *discordgo.MessageCreate, session *discordgo.Session, UserID string, Credits int) {
-	var failureMessage = "Failed! Message OrangeFlare#1337"
-	userKey := datastore.NameKey("User", UserID, nil)
-	user := UserStructure{}
-
-	if err := gcp.Get(ctx, userKey, &user); err != nil {
-		fmt.Println("--Warning--")
-		fmt.Println("Failed to find user from GCP Datastore")
-		fmt.Println(err)
+	user, err := getUserData(event.Author.ID)
+	if err != nil {
 		session.ChannelMessageSend(event.ChannelID, "The User ``"+UserID+"`` is not registered!")
 		session.ChannelMessageSend(event.ChannelID, "Please have them run ``"+cmdprefix+".game.join``")
 		session.ChannelMessageSend(event.ChannelID, "***__If you believe this to be a mistake, contact OrangeFlare#1337 immediately!__***")
@@ -779,11 +725,40 @@ func removeCredits(event *discordgo.MessageCreate, session *discordgo.Session, U
 		user.Credits = user.Credits - Credits
 	}
 
-	if _, err := gcp.Put(ctx, userKey, &user); err != nil {
+	if err := putUserData(event.Author.ID, user.Attack, user.Defense, user.Credits); err != nil {
 		fmt.Println("--Error--")
 		fmt.Println("Failed to create GCP client")
 		fmt.Println(err)
-		session.ChannelMessageSend(event.ChannelID, failureMessage)
+		session.ChannelMessageSend(event.ChannelID, "Failed! Message OrangeFlare#1337")
 	}
 	return
+}
+
+//getUserData contains all code for obtaining the data of a user
+func getUserData(userID string) (user UserStructure, err error) {
+	userKey := datastore.NameKey("User", userID, nil)
+	if err := gcp.Get(ctx, userKey, &user); err != nil {
+		fmt.Println("--Warning--")
+		fmt.Println("Failed to read user from GCP Datastore")
+		return user, err
+	}
+	err = nil
+	return user, err
+}
+
+//putUserdata contains all code for changing the data of a user
+func putUserData(userID string, attack int, defense int, credits int) (err error) {
+	userKey := datastore.NameKey("User", userID, nil)
+	user := UserStructure{
+		Attack:  attack,
+		Defense: defense,
+		Credits: credits,
+	}
+	if _, err := gcp.Put(ctx, userKey, &user); err != nil {
+		fmt.Println("--Warning--")
+		fmt.Println("Failed to write user to GCP Datatstore")
+		return err
+	}
+	err = nil
+	return err
 }
