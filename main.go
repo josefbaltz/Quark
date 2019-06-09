@@ -432,7 +432,7 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 			session.ChannelMessageSend(event.ChannelID, "```"+failureMessage+"```\nPlease Contact OrangeFlare#1337")
 			return
 		}
-		sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "Success! Your attack is now level "+strconv.Itoa(user.Attack)+"\nYou now have "+strconv.Itoa(user.Credits)+" credits left!")
+		sentMessage, _ := session.ChannelMessageSend(event.ChannelID, "Success! Your defense is now level "+strconv.Itoa(user.Defense)+"\nYou now have "+strconv.Itoa(user.Credits)+" credits left!")
 		time.Sleep(messageSleepTime * time.Second)
 		session.ChannelMessageDelete(event.ChannelID, sentMessage.ID)
 		return
@@ -521,6 +521,26 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 
 		addCredits(event, session, UserID, CreditsConv)
 		session.ChannelMessageSend(event.ChannelID, "The UserID "+UserID+" has been credited "+Credits+" Credits")
+		return
+	}
+
+	//q.game.admin.removecredits
+	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.admin.removecredits") {
+		if event.Author.ID != "176108182056206336" { //Only OrangeFlare#1337 can run this command
+			return
+		}
+		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		args := strings.Split(strings.TrimPrefix(event.Content, cmdprefix+".game.admin.removecredits "), " ")
+		UserID, Credits := args[0], args[1]
+
+		CreditsConv, err := strconv.Atoi(Credits)
+		if err != nil {
+			session.ChannelMessageSend(event.ChannelID, "An error has occured!")
+			return
+		}
+
+		removeCredits(event, session, UserID, CreditsConv)
+		session.ChannelMessageSend(event.ChannelID, "The UserID "+UserID+" has had "+Credits+" Credits removed")
 		return
 	}
 }
@@ -646,24 +666,6 @@ func fightMonster(user UserStructure, monster MonsterStructure, event *discordgo
 	return
 }
 
-//addCredits contains all code for adding credits to a user
-func addCredits(event *discordgo.MessageCreate, session *discordgo.Session, UserID string, Credits int) {
-	user, err := getUserData(event.Author.ID)
-	if err != nil {
-		session.ChannelMessageSend(event.ChannelID, "The User ``"+UserID+"`` is not registered!")
-		session.ChannelMessageSend(event.ChannelID, "Please have them run ``"+cmdprefix+".game.join``")
-		session.ChannelMessageSend(event.ChannelID, "***__If you believe this to be a mistake, contact OrangeFlare#1337 immediately!__***")
-		return
-	}
-
-	user.Credits = user.Credits + Credits
-
-	if err := putUserData(event.Author.ID, user.Attack, user.Defense, user.Credits); err != nil {
-		session.ChannelMessageSend(event.ChannelID, "Failed! Message OrangeFlare#1337")
-	}
-	return
-}
-
 func battleStatsEmbed(event *discordgo.MessageCreate, session *discordgo.Session, user UserStructure, monster MonsterStructure, baseMonsterHP int, baseUserHP int) *discordgo.MessageEmbed {
 	battleStats := &discordgo.MessageEmbed{
 		Color:       0xfaa61a, //quarkyellow
@@ -707,6 +709,24 @@ func battleStatsEmbed(event *discordgo.MessageCreate, session *discordgo.Session
 		},
 	}
 	return battleStats
+}
+
+//addCredits contains all code for adding credits to a user
+func addCredits(event *discordgo.MessageCreate, session *discordgo.Session, UserID string, Credits int) {
+	user, err := getUserData(event.Author.ID)
+	if err != nil {
+		session.ChannelMessageSend(event.ChannelID, "The User ``"+UserID+"`` is not registered!")
+		session.ChannelMessageSend(event.ChannelID, "Please have them run ``"+cmdprefix+".game.join``")
+		session.ChannelMessageSend(event.ChannelID, "***__If you believe this to be a mistake, contact OrangeFlare#1337 immediately!__***")
+		return
+	}
+
+	user.Credits = user.Credits + Credits
+
+	if err := putUserData(event.Author.ID, user.Attack, user.Defense, user.Credits); err != nil {
+		session.ChannelMessageSend(event.ChannelID, "Failed! Message OrangeFlare#1337")
+	}
+	return
 }
 
 //takeCredits contains all code for removing credits from a user
