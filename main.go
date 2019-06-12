@@ -133,9 +133,9 @@ func botConnected(session *discordgo.Session, event *discordgo.Ready) {
 	//*NOTE* Any code below this will *not* run make sure to put anything that needs to be ran once above this for loop
 	for 1 == 1 {
 		session.UpdateStatus(0, "Type "+cmdprefix+".help")
-		time.Sleep(messageSleepTime * time.Second)
+		time.Sleep(30 * time.Second)
 		session.UpdateStatus(0, "with "+strconv.Itoa(len(session.State.Guilds))+" servers")
-		time.Sleep(messageSleepTime * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 }
 
