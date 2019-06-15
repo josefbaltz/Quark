@@ -375,6 +375,10 @@ func gameCommands(session *discordgo.Session, event *discordgo.MessageCreate) {
 	//q.game.upgrade.attack
 	if strings.HasPrefix(strings.ToLower(event.Content), cmdprefix+".game.upgrade.attack") {
 		session.ChannelMessageDelete(event.ChannelID, event.Message.ID)
+		args := strings.Split(strings.TrimPrefix(event.Content, cmdprefix+".game.upgrade.attack "), " ")
+		if args[0] != "" {
+			upgradeQuantity := args[0]
+		}
 
 		user, err := getUserData(event.Author.ID)
 		if err != nil {

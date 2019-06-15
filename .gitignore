@@ -27,3 +27,7 @@ src
 #Dev Start File
 start.bat
 *.bat
+
+startDevMode
+
+Quark
